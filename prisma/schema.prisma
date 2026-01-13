@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  sourceType String
+  sourceUrl String?
+  uploadId  String?
+  status    String
+  stage     String
+  progress  Int
+  options   Json
+  error     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clips     Clip[]
+  logs      JobLog[]
+}
+
+model Clip {
+  id        String   @id @default(cuid())
+  jobId     String
+  start     Float
+  end       Float
+  score     Float
+  reason    String
+  status    String
+  videoPath String?
+  srtPath   String?
+  vttPath   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model JobLog {
+  id        String   @id @default(cuid())
+  jobId     String
+  level     String
+  message   String
+  createdAt DateTime @default(now())
+  Job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
