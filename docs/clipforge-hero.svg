@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0d12" />
+      <stop offset="100%" stop-color="#141821" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#24d4ff">
+        <animate attributeName="stop-color" values="#24d4ff;#ff6b4a;#24d4ff" dur="6s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="#ff6b4a">
+        <animate attributeName="stop-color" values="#ff6b4a;#24d4ff;#ff6b4a" dur="6s" repeatCount="indefinite" />
+      </stop>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="360" fill="url(#bg)" />
+
+  <circle cx="180" cy="80" r="120" fill="#24d4ff" opacity="0.18" filter="url(#blur)">
+    <animate attributeName="cx" values="180;220;180" dur="8s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="980" cy="280" r="150" fill="#ff6b4a" opacity="0.18" filter="url(#blur)">
+    <animate attributeName="cy" values="280;240;280" dur="7s" repeatCount="indefinite" />
+  </circle>
+
+  <g opacity="0.6" stroke="url(#glow)" stroke-width="2">
+    <path d="M120 260 C 260 200, 440 220, 560 180" fill="none">
+      <animate attributeName="d" dur="6s" repeatCount="indefinite"
+        values="M120 260 C 260 200, 440 220, 560 180; M120 250 C 260 210, 440 200, 560 190; M120 260 C 260 200, 440 220, 560 180" />
+    </path>
+    <path d="M660 140 C 780 120, 920 160, 1080 120" fill="none">
+      <animate attributeName="d" dur="5s" repeatCount="indefinite"
+        values="M660 140 C 780 120, 920 160, 1080 120; M660 150 C 780 130, 920 140, 1080 130; M660 140 C 780 120, 920 160, 1080 120" />
+    </path>
+  </g>
+
+  <g fill="none" stroke="#2b3342" stroke-width="1" opacity="0.6">
+    <rect x="80" y="60" width="1040" height="240" rx="32" />
+    <line x1="80" y1="140" x2="1120" y2="140" />
+    <line x1="80" y1="220" x2="1120" y2="220" />
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif" fill="#ffffff">
+    <text x="120" y="140" font-size="46" letter-spacing="6">CLIPFORGE</text>
+    <text x="120" y="190" font-size="18" fill="#c0c7d4">Forge vertical highlights, subtitles, and exports</text>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif" fill="#9aa4b2" font-size="14" letter-spacing="3">
+    <text x="120" y="250">UPLOAD OR YOUTUBE URL</text>
+    <text x="420" y="250">VAD + TRANSCRIPT</text>
+    <text x="720" y="250">9:16 RENDER</text>
+    <text x="980" y="250">EXPORT MP4</text>
+  </g>
+</svg>

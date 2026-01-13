@@ -196,6 +196,86 @@ export async function rerenderClip(
   await renderClip(input.jobId, { ...clip, start: input.start, end: input.end }, getInputPath(job), input.options, deps);
 }
 
+export async function generateClip(
+  input: {
+    sourceUrl?: string | null;
+    uploadId?: string | null;
+    start: number;
+    end: number;
+    options: Partial<JobOptions>;
+  },
+  deps: JobDependencies
+) {
+  const options: JobOptions = {
+    language: input.options.language ?? "en",
+    clipCount: 1,
+    durationPreset: input.options.durationPreset ?? "normal",
+    subtitles: input.options.subtitles ?? "off",
+    smartCrop: input.options.smartCrop ?? false
+  };
+
+  const sourceType = input.uploadId ? "upload" : "youtube";
+  const job = await deps.repo.createJob({
+    sourceType,
+    sourceUrl: input.sourceUrl ?? null,
+    uploadId: input.uploadId ?? null,
+    options
+  });
+
+  const resolved = await deps.source.resolve({ url: input.sourceUrl ?? null, uploadId: input.uploadId ?? null });
+  if (!resolved.filePath) {
+    throw new Error("No input file available for processing.");
+  }
+
+  const segment = { start: input.start, end: input.end, score: 1, reason: "manual" } as any;
+  const clip = await deps.repo.createClip(job.id, segment);
+  await renderClip(job.id, clip, resolved.filePath, options, deps);
+  return clip;
+}
+
+export async function generateClipsFromVideo(
+  input: {
+    sourceUrl?: string | null;
+    uploadId?: string | null;
+    options: JobOptions;
+  },
+  deps: JobDependencies
+) {
+  const sourceType = input.uploadId ? "upload" : "youtube";
+  const job = await deps.repo.createJob({
+    sourceType,
+    sourceUrl: input.sourceUrl ?? null,
+    uploadId: input.uploadId ?? null,
+    options: input.options
+  });
+
+  const resolved = await deps.source.resolve({ url: input.sourceUrl ?? null, uploadId: input.uploadId ?? null });
+  if (!resolved.filePath) {
+    throw new Error("No input file available for processing.");
+  }
+
+  const transcript = await deps.transcriber.transcribe(resolved.filePath, input.options.language, job.id);
+  const jobDir = await deps.storage.ensureJobDir(job.id);
+  await deps.storage.writeFile(`${jobDir}/transcript.json`, Buffer.from(JSON.stringify(transcript, null, 2)));
+
+  const segments = await deps.detector.detect({
+    inputPath: resolved.filePath,
+    transcript,
+    clipCount: input.options.clipCount,
+    durationPreset: input.options.durationPreset
+  });
+
+  const clips: ClipRecord[] = [];
+  for (const segment of segments) {
+    const clip = await deps.repo.createClip(job.id, segment);
+    await renderClip(job.id, clip, resolved.filePath, input.options, deps);
+    clips.push(clip);
+  }
+
+  await deps.repo.updateJob(job.id, { status: "ready", stage: "ready", progress: 100 });
+  return { jobId: job.id, clips };
+}
+
 function getInputPath(job: { uploadId?: string | null }) {
   if (!job.uploadId) {
     throw new Error("Missing uploadId for re-render.");

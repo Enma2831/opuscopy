@@ -1,0 +1,1 @@
+- [x] Remove manual clip endpoint; clips are generated via /api/jobs pipeline

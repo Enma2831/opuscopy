@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { spawn } from "child_process";
 import { VideoSource } from "../../domain/types";
 import { VideoSourcePort } from "../../interfaces/ports";
 
@@ -25,8 +26,21 @@ export class VideoSourceResolver implements VideoSourcePort {
 
     if (options.url) {
       const metadata = await fetchYoutubeMetadata(options.url);
+      let filePath: string | undefined;
+      if (process.env.ALLOW_YOUTUBE_DOWNLOADS === "true") {
+        const storageBase = process.env.STORAGE_PATH ?? path.join(process.cwd(), "storage");
+        const jobsDir = path.join(storageBase, "jobs");
+        await fs.mkdir(jobsDir, { recursive: true });
+        const safeName = Buffer.from(options.url).toString("hex").slice(0, 16);
+        filePath = path.join(jobsDir, `yt-${safeName}.mp4`);
+        const exists = await fileExists(filePath);
+        if (!exists) {
+          await downloadYoutubeWithYtdlp(options.url, filePath);
+        }
+      }
       return {
         type: "youtube",
+        filePath,
         url: options.url,
         title: metadata?.title ?? null,
         provider: metadata?.provider_name ?? "YouTube"
@@ -57,4 +71,19 @@ async function fetchYoutubeMetadata(url: string) {
   } catch {
     return null;
   }
+}
+
+async function downloadYoutubeWithYtdlp(url: string, outPath: string) {
+  return new Promise<void>((resolve, reject) => {
+    const args = ["-o", outPath, "--recode-video", "mp4", url];
+    const proc = spawn("yt-dlp", args, { stdio: "ignore" });
+    proc.on("error", () => reject(new Error("yt-dlp not found or failed to start. Please install yt-dlp.")));
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error("Failed to download YouTube video with yt-dlp."));
+      }
+    });
+  });
 }

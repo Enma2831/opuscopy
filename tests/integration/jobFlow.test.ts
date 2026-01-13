@@ -4,18 +4,18 @@ import { promises as fs } from "fs";
 import { createJob, processJob } from "../../src/application/jobService";
 import { LocalStorage } from "../../src/infrastructure/storage/localStorage";
 import { SubtitleService } from "../../src/infrastructure/transcription/subtitles";
-import { HighlightSegment, JobOptions, Transcript, VideoSource } from "../../src/domain/types";
+import { HighlightSegment, JobOptions, Transcript, VideoSource, JobRecord, ClipRecord } from "../../src/domain/types";
 import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, TranscriptionPort, VideoSourcePort } from "../../src/interfaces/ports";
 
 class MemoryRepo implements JobRepositoryPort {
-  jobs = new Map<string, any>();
-  clips = new Map<string, any>();
+  jobs = new Map<string, JobRecord>();
+  clips = new Map<string, ClipRecord>();
 
-  async createJob(options: any) {
+  async createJob(options: { sourceType: string; sourceUrl?: string | null; uploadId?: string | null; options: JobOptions }): Promise<JobRecord> {
     const id = `job-${Math.random().toString(36).slice(2, 8)}`;
-    const record = {
+    const record: JobRecord = {
       id,
-      sourceType: options.sourceType,
+      sourceType: options.sourceType as any,
       sourceUrl: options.sourceUrl ?? null,
       uploadId: options.uploadId ?? null,
       status: "pending",
@@ -31,20 +31,20 @@ class MemoryRepo implements JobRepositoryPort {
     return record;
   }
 
-  async updateJob(jobId: string, patch: any) {
-    const current = this.jobs.get(jobId);
-    const updated = { ...current, ...patch, updatedAt: new Date() };
+  async updateJob(jobId: string, patch: Partial<JobRecord>): Promise<JobRecord> {
+    const current = this.jobs.get(jobId)!;
+    const updated: JobRecord = { ...current, ...patch, updatedAt: new Date() };
     this.jobs.set(jobId, updated);
     return updated;
   }
 
-  async getJob(jobId: string) {
+  async getJob(jobId: string): Promise<JobRecord | null> {
     return this.jobs.get(jobId) ?? null;
   }
 
-  async createClip(jobId: string, segment: HighlightSegment) {
+  async createClip(jobId: string, segment: HighlightSegment): Promise<ClipRecord> {
     const id = `clip-${Math.random().toString(36).slice(2, 8)}`;
-    const record = {
+    const record: ClipRecord = {
       id,
       jobId,
       start: segment.start,
@@ -59,18 +59,18 @@ class MemoryRepo implements JobRepositoryPort {
     return record;
   }
 
-  async updateClip(clipId: string, patch: any) {
-    const current = this.clips.get(clipId);
-    const updated = { ...current, ...patch, updatedAt: new Date() };
+  async updateClip(clipId: string, patch: Partial<ClipRecord>): Promise<ClipRecord> {
+    const current = this.clips.get(clipId)!;
+    const updated: ClipRecord = { ...current, ...patch, updatedAt: new Date() };
     this.clips.set(clipId, updated);
     return updated;
   }
 
-  async listClips(jobId: string) {
+  async listClips(jobId: string): Promise<ClipRecord[]> {
     return Array.from(this.clips.values()).filter((clip) => clip.jobId === jobId);
   }
 
-  async getClip(clipId: string) {
+  async getClip(clipId: string): Promise<ClipRecord | null> {
     return this.clips.get(clipId) ?? null;
   }
 }
@@ -164,6 +164,95 @@ describe("job flow", () => {
     expect(clips.length).toBeGreaterThan(0);
     const clip = clips[0];
     expect(clip.videoPath).toBeTruthy();
-    expect(await storage.exists(clip.videoPath)).toBe(true);
+    const videoPath = clip.videoPath!;
+    expect(await storage.exists(videoPath)).toBe(true);
+  });
+});
+
+describe("youtube flow", () => {
+  it("processes YouTube URL via source and renders clips", async () => {
+    const storage = new LocalStorage(path.join(process.cwd(), "storage", "test-youtube-ok"));
+    const deps = {
+      repo: new MemoryRepo(),
+      queue: new MockQueue(),
+      source: ({
+        async resolve(_: { url?: string | null; uploadId?: string | null }): Promise<VideoSource> {
+          return {
+            type: "youtube",
+            filePath: path.join(process.cwd(), "samples", "sample.wav"),
+            url: "https://youtu.be/dummy",
+            title: "Dummy",
+            provider: "YouTube"
+          };
+        }
+      } as unknown) as VideoSourcePort,
+      transcriber: new MockTranscriber(),
+      detector: new MockDetector(),
+      renderer: new MockRenderer(),
+      storage,
+      subtitles: new SubtitleService(),
+      logger: new MockLogger()
+    };
+
+    const options: JobOptions = {
+      language: "es",
+      clipCount: 1,
+      durationPreset: "short",
+      subtitles: "srt",
+      smartCrop: true
+    };
+
+    const job = await createJob({ sourceType: "youtube", sourceUrl: "https://youtu.be/dummy", options }, deps);
+    await processJob(job.id, deps);
+
+    const updated = await deps.repo.getJob(job.id);
+    const clips = await deps.repo.listClips(job.id);
+
+    expect(updated?.status).toBe("ready");
+    expect(clips.length).toBeGreaterThan(0);
+    const clip = clips[0];
+    expect(clip.videoPath).toBeTruthy();
+    const videoPath = clip.videoPath!;
+    expect(await storage.exists(videoPath)).toBe(true);
+  });
+
+  it("errors when YouTube downloads disabled and no file available", async () => {
+    const storage = new LocalStorage(path.join(process.cwd(), "storage", "test-youtube-disabled"));
+    const deps = {
+      repo: new MemoryRepo(),
+      queue: new MockQueue(),
+      source: ({
+        async resolve(_: { url?: string | null; uploadId?: string | null }): Promise<VideoSource> {
+          return {
+            type: "youtube",
+            filePath: undefined,
+            url: "https://youtu.be/dummy",
+            title: "Dummy",
+            provider: "YouTube"
+          };
+        }
+      } as unknown) as VideoSourcePort,
+      transcriber: new MockTranscriber(),
+      detector: new MockDetector(),
+      renderer: new MockRenderer(),
+      storage,
+      subtitles: new SubtitleService(),
+      logger: new MockLogger()
+    };
+
+    const options: JobOptions = {
+      language: "es",
+      clipCount: 1,
+      durationPreset: "short",
+      subtitles: "srt",
+      smartCrop: true
+    };
+
+const job = await createJob({ sourceType: "youtube", sourceUrl: "https://youtu.be/dummy", options }, deps);
+    await processJob(job.id, deps);
+
+    const updated = await deps.repo.getJob(job.id);
+    expect(updated?.status).toBe("error");
+    expect(updated?.error).toBe("YouTube downloads are disabled. Upload a file you own or have rights to use.");
   });
 });
