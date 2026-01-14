@@ -1,19 +1,26 @@
 # ClipForge
 
-ClipForge convierte videos en clips verticales con subtitulos listos para TikTok, Shorts y Reels.
+<p align="center">
+  <img src="docs/clipforge-hero.svg" alt="ClipForge hero banner" width="100%" />
+</p>
 
-## Aviso legal
-Solo usar contenido propio o con permisos/licencia. No se implementa bypass de DRM ni descargas prohibidas. Si un proveedor bloquea descargas, ClipForge muestra un error y recomienda subir un archivo propio.
+<p align="center">
+  <strong>Convierte videos largos en clips verticales listos para TikTok, Shorts y Reels.</strong><br/>
+  Subtitulos, highlights y render rapido con un pipeline reproducible y escalable.
+</p>
 
-## Stack
-- Next.js 14 + TypeScript + Tailwind (App Router)
-- Node.js route handlers + BullMQ + Redis
-- FFmpeg para render
-- Whisper CLI (opcional) para transcripcion
-- MySQL + Prisma
-- Storage local en ./storage con adapter extensible
+## Que ofrece
+- Pipeline end-to-end: ingesta, transcripcion, deteccion de highlights y render 9:16.
+- Subtitulos como archivo SRT/VTT o quemados en video.
+- Render con FFmpeg y cortes precisos por segmentos.
+- Arquitectura hexagonal para cambiar storage, transcripcion y render sin romper el core.
+- Cola con BullMQ + Redis para jobs pesados y procesamiento paralelo.
 
-FFmpeg debe estar disponible en el PATH dentro del contenedor o en tu maquina local.
+## Sistema visual (direccion UI)
+- Tipografia sugerida: Space Grotesk + Sora para un look tecnico y moderno.
+- Paleta base: #0b1f2a (midnight), #ff6f61 (ember), #ffb347 (sun), #2dd4bf (aqua), #f8fafc (mist).
+- Layout: panel central con progreso claro, previews en grid y control de re-render por clip.
+- Motion: barras de progreso, waveforms y estados con transiciones suaves (200-280ms).
 
 ## Arquitectura (hexagonal)
 ```
@@ -27,6 +34,21 @@ FFmpeg debe estar disponible en el PATH dentro del contenedor o en tu maquina lo
                                |-- PrismaRepo
                                |-- RedisQueue
 ```
+
+## Pipeline
+1. Ingesta / download (upload local o metadata de YouTube)
+2. Transcripcion (Whisper o mock)
+3. Deteccion de highlights (energia + transcript)
+4. Render clips 9:16 con subtitulos
+
+El smart crop actual usa center crop. Puedes extenderlo con deteccion de rostro (OpenCV) en `src/infrastructure/render`.
+
+## Rendimiento y balanceo
+- `WORKER_COUNT`: cantidad de procesos worker para distribuir jobs.
+- `WORKER_CONCURRENCY`: jobs concurrentes por proceso.
+- `WORKER_MAX_RSS_MB`: pausa nuevos jobs si el RSS supera el limite (0 desactiva).
+
+FFmpeg debe estar disponible en el PATH dentro del contenedor o en tu maquina local.
 
 ## Docker Compose
 Requisitos: Docker y Docker Compose.
@@ -58,32 +80,32 @@ npm run worker
 ```
 
 ## Variables de entorno
-- `DATABASE_URL`: conexion MySQL
-- `REDIS_URL`: conexion Redis
-- `STORAGE_PATH`: carpeta de archivos
-- `LOGS_PATH`: carpeta de logs
-- `WHISPER_PROVIDER`: `mock` o `whisper`
-- `WHISPER_CMD`: comando Whisper CLI
-- `WHISPER_MODEL`: modelo Whisper
-- `FFMPEG_LOUDNORM`: `1` para loudnorm
-- `WHISPER_DEVICE`: `cpu` o `cuda`
-- `MAX_UPLOAD_MB`: limite de upload en MB
-
-## Pipeline
-1. Ingesta / download (upload local o metadata de YouTube)
-2. Transcripcion (Whisper o mock)
-3. Deteccion de highlights (energia + transcript)
-4. Render clips 9:16 con subtitulos
-
-El smart crop actual usa center crop. Puedes extenderlo con deteccion de rostro (OpenCV) en `src/infrastructure/render`.
+| Variable | Descripcion | Ejemplo |
+| --- | --- | --- |
+| DATABASE_URL | Conexion MySQL | mysql://USER:PASSWORD@localhost:3306/clipforge |
+| REDIS_URL | Conexion Redis | redis://localhost:6379 |
+| STORAGE_PATH | Carpeta de archivos | ./storage |
+| LOGS_PATH | Carpeta de logs | ./logs |
+| WHISPER_PROVIDER | mock o whisper | mock |
+| WHISPER_CMD | Comando Whisper CLI | whisper |
+| WHISPER_MODEL | Modelo Whisper | base |
+| WHISPER_DEVICE | cpu o cuda | cpu |
+| ALLOW_YOUTUBE_DOWNLOADS | Placeholder (no habilita descargas) | true |
+| FFMPEG_LOUDNORM | 1 para loudnorm | 1 |
+| MAX_UPLOAD_MB | Limite de upload en MB | 500 |
+| WORKER_COUNT | Procesos worker para balanceo | 1 |
+| WORKER_CONCURRENCY | Jobs concurrentes por proceso | 1 |
+| WORKER_MAX_RSS_MB | Pausa nuevos jobs si supera RSS (0 desactiva) | 0 |
 
 ## Tests
 ```
 npm test
 ```
 
+## Aviso legal
+Solo usar contenido propio o con permisos/licencia. No se implementa bypass de DRM ni descargas prohibidas. Si un proveedor bloquea descargas, ClipForge muestra un error y recomienda subir un archivo propio.
+
 ## Notas
 - La descarga directa de YouTube esta deshabilitada por defecto. Usa upload de archivo.
 - `samples/sample.wav` es un archivo dummy para pruebas locales.
 - En modo dev, `GET /api/jobs/:id/logs` devuelve el log del job.
-- `ALLOW_YOUTUBE_DOWNLOADS` es un placeholder y no habilita descargas en este MVP.

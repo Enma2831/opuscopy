@@ -28,8 +28,13 @@ export async function createJob(
     uploadId: input.uploadId ?? null,
     options: input.options
   });
-  await deps.queue.enqueueJob(job.id);
-  await deps.logger.info(job.id, "Job queued.");
+  if (process.env.RUN_INLINE === "true" || process.env.NODE_ENV === "development") {
+    await deps.logger.info(job.id, "Inline processing enabled. Starting immediately.");
+    await processJob(job.id, deps);
+  } else {
+    await deps.queue.enqueueJob(job.id);
+    await deps.logger.info(job.id, "Job queued.");
+  }
   return job;
 }
 
@@ -96,12 +101,19 @@ export async function processJob(jobId: string, deps: JobDependencies) {
     });
 
     if (!segments.length) {
-      await deps.repo.updateJob(jobId, {
-        status: "error",
-        stage: "error",
-        progress: 0,
-        error: "No highlights detected. Try a different input or duration preset."
-      });
+      const totalDuration = transcript.segments[transcript.segments.length - 1]?.end ?? 0;
+      const { min, max } = { min: job.options.durationPreset === "short" ? 12 : job.options.durationPreset === "long" ? 30 : 18, max: job.options.durationPreset === "short" ? 22 : job.options.durationPreset === "long" ? 45 : 32 };
+      const fallbackLength = Math.min(max, Math.max(min, totalDuration || min));
+      const fallbackStart = 0;
+      const fallbackEnd = Math.min(totalDuration || fallbackLength, fallbackLength);
+      const fallbackSegment = { start: fallbackStart, end: fallbackEnd, score: 0.5, reason: "fallback" } as any;
+      const clip = await deps.repo.createClip(job.id, fallbackSegment);
+      await deps.logger.warn(job.id, "Detector returned no segments. Using fallback clip.");
+      await deps.logger.info(job.id, "Rendering clips.");
+      await updateStage("render", 70, "processing");
+      await renderClip(job.id, clip, source.filePath, job.options, deps);
+      await deps.repo.updateJob(job.id, { status: "ready", stage: "ready", progress: 100, error: null });
+      await deps.logger.info(job.id, "Job ready.");
       return;
     }
 

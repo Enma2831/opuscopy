@@ -13,6 +13,9 @@ services:
       WHISPER_PROVIDER: "mock"
       WHISPER_DEVICE: "cpu"
       FFMPEG_LOUDNORM: "1"
+      WORKER_COUNT: "${WORKER_COUNT:-1}"
+      WORKER_CONCURRENCY: "${WORKER_CONCURRENCY:-1}"
+      WORKER_MAX_RSS_MB: "${WORKER_MAX_RSS_MB:-0}"
     volumes:
       - ./:/app
       - /app/node_modules

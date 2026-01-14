@@ -9,6 +9,8 @@ import { JobOptions } from "../../../src/domain/types";
 export const runtime = "nodejs";
 
 const schema = z.object({
+  sourceType: z.enum(["youtube", "upload"]).optional(),
+  sourceUrl: z.string().url().optional().nullable(),
   url: z.string().url().optional().nullable(),
   uploadId: z.string().optional().nullable(),
   options: z
@@ -43,17 +45,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { url, uploadId, options } = parsed.data;
+  const { sourceType: inputSourceType, sourceUrl, url, uploadId, options } = parsed.data;
+  const finalUrl = sourceUrl ?? url ?? null;
+  let sourceType = inputSourceType ?? (uploadId ? "upload" : finalUrl ? "youtube" : null);
 
-  if (!url && !uploadId) {
+  if (!sourceType || (!finalUrl && !uploadId)) {
     return NextResponse.json({ error: "Provide a YouTube URL or upload a file." }, { status: 400 });
   }
 
-  if (url && !isYoutubeUrl(url)) {
+  if (sourceType === "youtube" && finalUrl && !isYoutubeUrl(finalUrl)) {
     return NextResponse.json({ error: "Only youtube.com or youtu.be links are allowed." }, { status: 400 });
   }
 
-  if (url && !uploadId && process.env.ALLOW_YOUTUBE_DOWNLOADS !== "true") {
+  if (sourceType === "youtube" && !uploadId && process.env.ALLOW_YOUTUBE_DOWNLOADS !== "true") {
     return NextResponse.json(
       { error: "YouTube downloads are disabled. Upload a file you own or have rights to use." },
       { status: 400 }
@@ -61,12 +65,11 @@ export async function POST(request: Request) {
   }
 
   const jobOptions: JobOptions = { ...defaultOptions, ...(options ?? {}) };
-  const sourceType = uploadId ? "upload" : "youtube";
   const deps = getDependencies();
   const job = await createJob(
     {
       sourceType,
-      sourceUrl: url ?? null,
+      sourceUrl: finalUrl,
       uploadId: uploadId ?? null,
       options: jobOptions
     },

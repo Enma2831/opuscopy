@@ -1,57 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="ClipForge hero">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0b0d12" />
-      <stop offset="100%" stop-color="#141821" />
+      <stop offset="0" stop-color="#0b1f2a"/>
+      <stop offset="1" stop-color="#19324a"/>
     </linearGradient>
-    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#24d4ff">
-        <animate attributeName="stop-color" values="#24d4ff;#ff6b4a;#24d4ff" dur="6s" repeatCount="indefinite" />
-      </stop>
-      <stop offset="100%" stop-color="#ff6b4a">
-        <animate attributeName="stop-color" values="#ff6b4a;#24d4ff;#ff6b4a" dur="6s" repeatCount="indefinite" />
-      </stop>
-    </linearGradient>
-    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="30" />
-    </filter>
+    <radialGradient id="glow" cx="0.8" cy="0.2" r="0.55">
+      <stop offset="0" stop-color="#ffb347" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#ff6f61" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#2a4358" stroke-width="1" opacity="0.6"/>
+    </pattern>
+    <style>
+      :root {
+        --fg: #f8fafc;
+        --muted: #cbd5e1;
+        --accent: #2dd4bf;
+        --accent-2: #ff6f61;
+        --accent-3: #ffb347;
+      }
+      .title { font: 700 64px/1.1 "Space Grotesk","Sora","Manrope",sans-serif; letter-spacing: 2px; fill: var(--fg); }
+      .subtitle { font: 400 20px/1.4 "Space Grotesk","Sora","Manrope",sans-serif; fill: var(--muted); }
+      .kicker { font: 600 14px/1 "Space Grotesk","Sora","Manrope",sans-serif; letter-spacing: 3px; fill: var(--accent); }
+    </style>
   </defs>
 
-  <rect width="1200" height="360" fill="url(#bg)" />
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <rect width="1200" height="420" fill="url(#grid)" opacity="0.35"/>
+  <rect width="1200" height="420" fill="url(#glow)"/>
 
-  <circle cx="180" cy="80" r="120" fill="#24d4ff" opacity="0.18" filter="url(#blur)">
-    <animate attributeName="cx" values="180;220;180" dur="8s" repeatCount="indefinite" />
-  </circle>
-  <circle cx="980" cy="280" r="150" fill="#ff6b4a" opacity="0.18" filter="url(#blur)">
-    <animate attributeName="cy" values="280;240;280" dur="7s" repeatCount="indefinite" />
-  </circle>
-
-  <g opacity="0.6" stroke="url(#glow)" stroke-width="2">
-    <path d="M120 260 C 260 200, 440 220, 560 180" fill="none">
-      <animate attributeName="d" dur="6s" repeatCount="indefinite"
-        values="M120 260 C 260 200, 440 220, 560 180; M120 250 C 260 210, 440 200, 560 190; M120 260 C 260 200, 440 220, 560 180" />
-    </path>
-    <path d="M660 140 C 780 120, 920 160, 1080 120" fill="none">
-      <animate attributeName="d" dur="5s" repeatCount="indefinite"
-        values="M660 140 C 780 120, 920 160, 1080 120; M660 150 C 780 130, 920 140, 1080 130; M660 140 C 780 120, 920 160, 1080 120" />
-    </path>
+  <g transform="translate(80 90)">
+    <text class="kicker">CLIPFORGE</text>
+    <text class="title" y="60">ClipForge</text>
+    <text class="subtitle" y="108">Clips verticales listos para TikTok, Shorts y Reels.</text>
+    <text class="subtitle" y="138">Subtitulos, highlights, y render rapido con FFmpeg.</text>
   </g>
 
-  <g fill="none" stroke="#2b3342" stroke-width="1" opacity="0.6">
-    <rect x="80" y="60" width="1040" height="240" rx="32" />
-    <line x1="80" y1="140" x2="1120" y2="140" />
-    <line x1="80" y1="220" x2="1120" y2="220" />
+  <g transform="translate(680 80)">
+    <rect x="0" y="0" width="420" height="260" rx="18" fill="#0f2a3a" stroke="#284a60"/>
+    <rect x="24" y="24" width="180" height="92" rx="10" fill="#102f40"/>
+    <rect x="224" y="24" width="172" height="92" rx="10" fill="#0e2433"/>
+    <rect x="24" y="132" width="372" height="96" rx="12" fill="#0c1f2c"/>
+    <rect x="44" y="48" width="120" height="10" rx="5" fill="#2dd4bf"/>
+    <rect x="44" y="68" width="90" height="8" rx="4" fill="#94a3b8"/>
+    <rect x="244" y="48" width="120" height="10" rx="5" fill="#ff6f61"/>
+    <rect x="244" y="68" width="90" height="8" rx="4" fill="#94a3b8"/>
+    <rect x="44" y="160" width="320" height="8" rx="4" fill="#334e68"/>
+    <rect x="44" y="178" width="240" height="8" rx="4" fill="#334e68"/>
+    <rect x="44" y="196" width="280" height="8" rx="4" fill="#334e68"/>
+    <circle cx="372" cy="196" r="12" fill="#ffb347">
+      <animate attributeName="r" values="10;14;10" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
   </g>
 
-  <g font-family="Arial, Helvetica, sans-serif" fill="#ffffff">
-    <text x="120" y="140" font-size="46" letter-spacing="6">CLIPFORGE</text>
-    <text x="120" y="190" font-size="18" fill="#c0c7d4">Forge vertical highlights, subtitles, and exports</text>
+  <g transform="translate(80 300)">
+    <rect x="0" y="40" width="16" height="40" rx="8" fill="#2dd4bf">
+      <animate attributeName="height" values="20;60;28;50;20" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="60;20;52;30;60" dur="2.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="28" y="30" width="16" height="50" rx="8" fill="#2dd4bf" opacity="0.8">
+      <animate attributeName="height" values="50;24;56;28;50" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="30;56;24;52;30" dur="2.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="56" y="46" width="16" height="34" rx="8" fill="#2dd4bf" opacity="0.65">
+      <animate attributeName="height" values="30;52;24;48;30" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="50;28;56;32;50" dur="2.4s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="84" y="34" width="16" height="46" rx="8" fill="#2dd4bf" opacity="0.55">
+      <animate attributeName="height" values="44;22;54;30;44" dur="2.1s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="36;58;26;50;36" dur="2.1s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="112" y="46" width="16" height="34" rx="8" fill="#2dd4bf" opacity="0.4">
+      <animate attributeName="height" values="28;50;22;46;28" dur="2.3s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="52;30;58;34;52" dur="2.3s" repeatCount="indefinite"/>
+    </rect>
   </g>
 
-  <g font-family="Arial, Helvetica, sans-serif" fill="#9aa4b2" font-size="14" letter-spacing="3">
-    <text x="120" y="250">UPLOAD OR YOUTUBE URL</text>
-    <text x="420" y="250">VAD + TRANSCRIPT</text>
-    <text x="720" y="250">9:16 RENDER</text>
-    <text x="980" y="250">EXPORT MP4</text>
+  <g transform="translate(360 312)">
+    <rect x="0" y="0" width="260" height="8" rx="4" fill="#334e68"/>
+    <rect x="0" y="0" width="160" height="8" rx="4" fill="#ff6f61">
+      <animate attributeName="width" values="60;180;100;220;60" dur="4s" repeatCount="indefinite"/>
+    </rect>
   </g>
 </svg>

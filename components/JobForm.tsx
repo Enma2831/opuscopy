@@ -10,7 +10,7 @@ const languages = [
   { value: "pt", label: "Portugues" }
 ];
 
-export default function JobForm() {
+export default function JobForm({ allowYoutubeDownloads = true }: { allowYoutubeDownloads?: boolean }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -45,7 +45,7 @@ export default function JobForm() {
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url || null, uploadId, options })
+        body: JSON.stringify({ sourceType: url ? "youtube" : "upload", sourceUrl: url || null, uploadId, options })
       });
 
       if (!res.ok) {
@@ -72,9 +72,11 @@ export default function JobForm() {
           placeholder="https://youtube.com/watch?v=..."
           className="mt-3 w-full rounded-2xl border border-white/20 bg-black/30 px-4 py-3 text-white placeholder:text-white/40"
         />
-        <p className="mt-3 text-xs text-white/50">
-          Solo usar contenido propio o con permisos/licencia. Si no se puede descargar, sube tu archivo.
-        </p>
+        {!allowYoutubeDownloads ? (
+          <p className="mt-3 text-xs text-ember">Descarga de YouTube deshabilitada. Sube tu archivo propio o con licencia.</p>
+        ) : (
+          <p className="mt-3 text-xs text-white/50">Solo usar contenido propio o con permisos/licencia. Si no se puede descargar, sube tu archivo.</p>
+        )}
       </div>
 
       <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur">

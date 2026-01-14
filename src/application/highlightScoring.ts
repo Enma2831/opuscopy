@@ -156,21 +156,17 @@ function excitementScore(text: string) {
 }
 
 const KEYWORDS = [
-  "clave",
-  "importante",
-  "impacto",
-  "secreto",
-  "historia",
-  "idea",
-  "tip",
-  "ejemplo",
-  "truco",
-  "wow",
-  "increible",
-  "resultado",
-  "urgente",
-  "ahora"
+  // Originales
+  "clave", "importante", "impacto", "secreto", "historia", "idea", "tip", "ejemplo", "truco", "wow", "increible", "resultado", "urgente", "ahora",
+  // Colombia/México
+  "increíble", "asombroso", "genial", "brutal", "épico", "impresionante", "espectacular", "fantástico", "alucinante", "loco",
+  "rápido", "órale", "neta", "al tiro", "sale", "chido", "padre", "chévere", "bacano", "chingón", "rifado",
+  "esencial", "fundamental", "principal", "básico", "verdad", "cambia", "revela", "mira", "fíjate", "hack",
+  // España nuevas
+  "tío", "joder", "coño", "flipante", "guay", "la hostia", "puta madre", "bestial", "venga", "órago",
+  "menudo", "qué fuerte", "para chuparse los dedos", "de lujo", "de maravilla"
 ];
+
 
 function buildWindows(transcript: Transcript, options: HighlightOptions): HighlightSegment[] {
   const { min, max } = durationRange(options.durationPreset);
@@ -178,8 +174,20 @@ function buildWindows(transcript: Transcript, options: HighlightOptions): Highli
   const windowSize = Math.min(max, Math.max(min, 18));
   const step = Math.max(6, Math.floor(windowSize / 2));
   const windows: HighlightSegment[] = [];
+  if (totalDuration <= 0) {
+    return windows;
+  }
+  if (totalDuration < min) {
+    const end = Math.min(totalDuration, max);
+    windows.push({ start: 0, end, score: 0, reason: "" });
+    return windows;
+  }
   for (let start = 0; start + windowSize <= totalDuration; start += step) {
     windows.push({ start, end: start + windowSize, score: 0, reason: "" });
+  }
+  if (!windows.length) {
+    const end = Math.min(totalDuration, windowSize);
+    windows.push({ start: 0, end, score: 0, reason: "" });
   }
   return windows;
 }
