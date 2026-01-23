@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="ClipForge motion preview">
+  <defs>
+    <linearGradient id="bg-motion" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1f2a"/>
+      <stop offset="1" stop-color="#172b3f"/>
+    </linearGradient>
+    <pattern id="grid-motion" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#244156" stroke-width="1" opacity="0.55"/>
+    </pattern>
+    <radialGradient id="glow-motion" cx="0.85" cy="0.2" r="0.7">
+      <stop offset="0" stop-color="#ffb347" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#0b1f2a" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      :root {
+        --fg: #f8fafc;
+        --muted: #cbd5e1;
+        --accent: #2dd4bf;
+        --accent-2: #ff6f61;
+        --accent-3: #ffb347;
+      }
+      .title { font: 700 36px/1.1 "Space Grotesk","Sora","Manrope",sans-serif; letter-spacing: 1px; fill: var(--fg); }
+      .subtitle { font: 400 16px/1.5 "Space Grotesk","Sora","Manrope",sans-serif; fill: var(--muted); }
+      .label { font: 600 11px/1 "Space Grotesk","Sora","Manrope",sans-serif; letter-spacing: 2.6px; fill: var(--accent); }
+    </style>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#bg-motion)"/>
+  <rect width="1200" height="320" fill="url(#grid-motion)" opacity="0.35"/>
+  <rect width="1200" height="320" fill="url(#glow-motion)"/>
+
+  <g transform="translate(70 54)">
+    <text class="label">MOTION PREVIEW</text>
+    <text class="title" y="44">UX flow with live progress,</text>
+    <text class="title" y="82">animated states, and cues.</text>
+    <text class="subtitle" y="118">Designed to keep the user calm while jobs run in the background.</text>
+  </g>
+
+  <g transform="translate(600 40)">
+    <rect x="0" y="0" width="520" height="220" rx="20" fill="#0f2636" stroke="#2a465c"/>
+    <rect x="26" y="24" width="208" height="78" rx="12" fill="#112c3d"/>
+    <rect x="248" y="24" width="246" height="78" rx="12" fill="#0c2231"/>
+    <rect x="26" y="118" width="468" height="78" rx="12" fill="#0b1f2c"/>
+
+    <rect x="46" y="44" width="140" height="10" rx="5" fill="#2dd4bf">
+      <animate attributeName="width" values="120;160;90;150;120" dur="4.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="46" y="62" width="100" height="8" rx="4" fill="#94a3b8" opacity="0.7"/>
+
+    <rect x="268" y="44" width="170" height="10" rx="5" fill="#ff6f61">
+      <animate attributeName="width" values="150;190;130;200;150" dur="4.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="268" y="62" width="110" height="8" rx="4" fill="#94a3b8" opacity="0.7"/>
+
+    <rect x="46" y="142" width="360" height="8" rx="4" fill="#334e68"/>
+    <rect x="46" y="160" width="280" height="8" rx="4" fill="#334e68"/>
+    <rect x="46" y="178" width="320" height="8" rx="4" fill="#334e68"/>
+
+    <circle cx="450" cy="166" r="12" fill="#ffb347">
+      <animate attributeName="r" values="9;13;9" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <g transform="translate(70 210)">
+    <rect x="0" y="0" width="470" height="10" rx="5" fill="#254056"/>
+    <rect x="0" y="0" width="180" height="10" rx="5" fill="#2dd4bf">
+      <animate attributeName="width" values="120;220;160;260;120" dur="5s" repeatCount="indefinite"/>
+    </rect>
+    <g>
+      <circle cx="40" cy="5" r="8" fill="#2dd4bf"/>
+      <circle cx="160" cy="5" r="8" fill="#ffb347"/>
+      <circle cx="280" cy="5" r="8" fill="#ff6f61"/>
+      <circle cx="400" cy="5" r="8" fill="#2dd4bf"/>
+      <circle cx="40" cy="5" r="14" fill="none" stroke="#2dd4bf" opacity="0.4">
+        <animate attributeName="r" values="10;16;10" dur="2.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="160" cy="5" r="14" fill="none" stroke="#ffb347" opacity="0.4">
+        <animate attributeName="r" values="10;16;10" dur="3.1s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="280" cy="5" r="14" fill="none" stroke="#ff6f61" opacity="0.4">
+        <animate attributeName="r" values="10;16;10" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="400" cy="5" r="14" fill="none" stroke="#2dd4bf" opacity="0.4">
+        <animate attributeName="r" values="10;16;10" dur="2.9s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <g transform="translate(70 248)">
+    <rect x="0" y="0" width="160" height="40" rx="12" fill="#0f2a3a" stroke="#284a60">
+      <animate attributeName="y" values="0;-4;0" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="18" y="12" width="100" height="8" rx="4" fill="#2dd4bf"/>
+    <rect x="18" y="24" width="70" height="6" rx="3" fill="#94a3b8" opacity="0.7"/>
+
+    <rect x="190" y="0" width="160" height="40" rx="12" fill="#0f2a3a" stroke="#284a60">
+      <animate attributeName="y" values="-2;2;-2" dur="4.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="208" y="12" width="100" height="8" rx="4" fill="#ff6f61"/>
+    <rect x="208" y="24" width="60" height="6" rx="3" fill="#94a3b8" opacity="0.7"/>
+
+    <rect x="380" y="0" width="160" height="40" rx="12" fill="#0f2a3a" stroke="#284a60">
+      <animate attributeName="y" values="1;-3;1" dur="4.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="398" y="12" width="88" height="8" rx="4" fill="#ffb347"/>
+    <rect x="398" y="24" width="70" height="6" rx="3" fill="#94a3b8" opacity="0.7"/>
+  </g>
+</svg>

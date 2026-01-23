@@ -20,7 +20,12 @@
 - Tipografia sugerida: Space Grotesk + Sora para un look tecnico y moderno.
 - Paleta base: #0b1f2a (midnight), #ff6f61 (ember), #ffb347 (sun), #2dd4bf (aqua), #f8fafc (mist).
 - Layout: panel central con progreso claro, previews en grid y control de re-render por clip.
-- Motion: barras de progreso, waveforms y estados con transiciones suaves (200-280ms).
+- Motion: barras de progreso, pulsos de estado y reveals escalonados (200-280ms).
+
+## Motion preview
+<p align="center">
+  <img src="docs/clipforge-motion.svg" alt="ClipForge motion preview" width="100%" />
+</p>
 
 ## Arquitectura (hexagonal)
 ```
