@@ -5,7 +5,7 @@ import { createJob, processJob } from "../../src/application/jobService";
 import { LocalStorage } from "../../src/infrastructure/storage/localStorage";
 import { SubtitleService } from "../../src/infrastructure/transcription/subtitles";
 import { HighlightSegment, JobOptions, Transcript, VideoSource, JobRecord, ClipRecord } from "../../src/domain/types";
-import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, TranscriptionPort, VideoSourcePort } from "../../src/interfaces/ports";
+import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, TranscriptionPort, VideoSourcePort, YoutubeClipperPort } from "../../src/interfaces/ports";
 
 class MemoryRepo implements JobRepositoryPort {
   jobs = new Map<string, JobRecord>();
@@ -125,6 +125,21 @@ class MockRenderer implements ClipRendererPort {
   }
 }
 
+class MockYoutubeClipper implements YoutubeClipperPort {
+  async clip(options: {
+    url: string;
+    start: number;
+    end: number;
+    outputPath: string;
+    maxHeight?: number;
+    timeoutMs?: number;
+    preferCopy?: boolean;
+  }): Promise<void> {
+    await fs.mkdir(path.dirname(options.outputPath), { recursive: true });
+    await fs.writeFile(options.outputPath, "mock");
+  }
+}
+
 class MockLogger implements LoggerPort {
   async info(_: string, __: string) {}
   async warn(_: string, __: string) {}
@@ -141,6 +156,7 @@ describe("job flow", () => {
       transcriber: new MockTranscriber(),
       detector: new MockDetector(),
       renderer: new MockRenderer(),
+      youtubeClipper: new MockYoutubeClipper(),
       storage,
       subtitles: new SubtitleService(),
       logger: new MockLogger()
@@ -189,6 +205,7 @@ describe("youtube flow", () => {
       transcriber: new MockTranscriber(),
       detector: new MockDetector(),
       renderer: new MockRenderer(),
+      youtubeClipper: new MockYoutubeClipper(),
       storage,
       subtitles: new SubtitleService(),
       logger: new MockLogger()
@@ -235,6 +252,7 @@ describe("youtube flow", () => {
       transcriber: new MockTranscriber(),
       detector: new MockDetector(),
       renderer: new MockRenderer(),
+      youtubeClipper: new MockYoutubeClipper(),
       storage,
       subtitles: new SubtitleService(),
       logger: new MockLogger()

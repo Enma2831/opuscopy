@@ -1,5 +1,5 @@
 import { ClipRecord, JobOptions } from "../domain/types";
-import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, StoragePort, SubtitlePort, TranscriptionPort, VideoSourcePort } from "../interfaces/ports";
+import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, StoragePort, SubtitlePort, TranscriptionPort, VideoSourcePort, YoutubeClipperPort } from "../interfaces/ports";
 
 export interface JobDependencies {
   repo: JobRepositoryPort;
@@ -8,6 +8,7 @@ export interface JobDependencies {
   transcriber: TranscriptionPort;
   detector: HighlightDetectorPort;
   renderer: ClipRendererPort;
+  youtubeClipper: YoutubeClipperPort;
   storage: StoragePort;
   subtitles: SubtitlePort;
   logger: LoggerPort;
@@ -234,14 +235,53 @@ export async function generateClip(
     options
   });
 
-  const resolved = await deps.source.resolve({ url: input.sourceUrl ?? null, uploadId: input.uploadId ?? null });
-  if (!resolved.filePath) {
-    throw new Error("No input file available for processing.");
-  }
+  const streamingEnabled = process.env.ALLOW_YOUTUBE_STREAMING === "true";
+  const shouldStream = Boolean(input.sourceUrl && !input.uploadId && streamingEnabled);
+  const resolved = shouldStream ? null : await deps.source.resolve({ url: input.sourceUrl ?? null, uploadId: input.uploadId ?? null });
+  const inputPath = resolved?.filePath ?? null;
 
   const segment = { start: input.start, end: input.end, score: 1, reason: "manual" } as any;
   const clip = await deps.repo.createClip(job.id, segment);
-  await renderClip(job.id, clip, resolved.filePath, options, deps);
+  if (!inputPath) {
+    if (!input.sourceUrl) {
+      throw new Error("No input file available for processing.");
+    }
+    if (!streamingEnabled) {
+      throw new Error("YouTube streaming is disabled. Upload a file you own or have rights to use.");
+    }
+
+    const jobDir = await deps.storage.ensureJobDir(job.id);
+    const videoPath = `${jobDir}/clip-${clip.id}.mp4`;
+    await deps.repo.updateClip(clip.id, { status: "rendering" });
+    await deps.logger.info(job.id, "Streaming YouTube clip with yt-dlp.");
+    try {
+      const maxHeight = Number.parseInt(process.env.YT_MAX_HEIGHT ?? "720", 10);
+      const timeoutMs = Number.parseInt(process.env.YT_CLIP_TIMEOUT_MS ?? "300000", 10);
+      const safeHeight = Number.isFinite(maxHeight) && maxHeight > 0 ? maxHeight : 720;
+      const safeTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 300000;
+      await deps.youtubeClipper.clip({
+        url: input.sourceUrl,
+        start: input.start,
+        end: input.end,
+        outputPath: videoPath,
+        maxHeight: safeHeight,
+        timeoutMs: safeTimeout,
+        preferCopy: true
+      });
+      await deps.repo.updateClip(clip.id, {
+        status: "ready",
+        videoPath,
+        srtPath: null,
+        vttPath: null
+      });
+    } catch (error) {
+      await deps.repo.updateClip(clip.id, { status: "error" });
+      throw error;
+    }
+    return clip;
+  }
+
+  await renderClip(job.id, clip, inputPath, options, deps);
   return clip;
 }
 

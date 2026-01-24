@@ -7,6 +7,7 @@ import { WhisperTranscriber } from "./transcription/whisperTranscriber";
 import { HybridHighlightDetector } from "./highlights/hybridHighlightDetector";
 import { FfmpegRenderer } from "./render/ffmpegRenderer";
 import { VideoSourceResolver } from "./video/videoSource";
+import { YtdlpClipper } from "./video/ytdlpClipper";
 import { SubtitleService } from "./transcription/subtitles";
 import { JobDependencies } from "../application/jobService";
 
@@ -29,6 +30,7 @@ export function getDependencies(): JobDependencies {
     transcriber: new WhisperTranscriber(path.join(storageBase, "jobs")),
     detector: new HybridHighlightDetector(),
     renderer: new FfmpegRenderer(),
+    youtubeClipper: new YtdlpClipper(),
     storage: new LocalStorage(storageBase),
     subtitles: new SubtitleService(),
     logger: new LocalLogger(logsDir)

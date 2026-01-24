@@ -45,9 +45,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only youtube.com or youtu.be links are allowed." }, { status: 400 });
     }
 
-    if (sourceUrl && !uploadId && process.env.ALLOW_YOUTUBE_DOWNLOADS !== "true") {
+    const youtubeAllowed =
+      process.env.ALLOW_YOUTUBE_DOWNLOADS === "true" || process.env.ALLOW_YOUTUBE_STREAMING === "true";
+    if (sourceUrl && !uploadId && !youtubeAllowed) {
       return NextResponse.json(
-        { error: "YouTube downloads are disabled. Upload a file you own or have rights to use." },
+        { error: "YouTube access is disabled. Upload a file you own or have rights to use." },
         { status: 400 }
       );
     }

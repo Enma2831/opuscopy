@@ -29,6 +29,18 @@ export interface ClipRendererPort {
   }): Promise<void>;
 }
 
+export interface YoutubeClipperPort {
+  clip(options: {
+    url: string;
+    start: number;
+    end: number;
+    outputPath: string;
+    maxHeight?: number;
+    timeoutMs?: number;
+    preferCopy?: boolean;
+  }): Promise<void>;
+}
+
 export interface StoragePort {
   ensureJobDir(jobId: string): Promise<string>;
   writeFile(path: string, data: Buffer): Promise<void>;
