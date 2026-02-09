@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { getDependencies } from "../../../../../src/infrastructure/container";
 import { rateLimit } from "../../../../../lib/rateLimit";
+import { findLocalClipFiles } from "../../../../../lib/localClips";
 
 export const runtime = "nodejs";
 
@@ -14,13 +15,13 @@ export async function GET(request: Request, { params }: { params: { clipId: stri
 
   const deps = getDependencies();
   const clip = await deps.repo.getClip(params.clipId);
-  if (!clip) {
-    return NextResponse.json({ error: "Clip not found" }, { status: 404 });
-  }
-
   const url = new URL(request.url);
   const format = url.searchParams.get("format") ?? "srt";
-  const filePath = format === "vtt" ? clip.vttPath : clip.srtPath;
+  let filePath = format === "vtt" ? clip?.vttPath ?? null : clip?.srtPath ?? null;
+  if (!filePath && process.env.NODE_ENV === "development") {
+    const local = await findLocalClipFiles(params.clipId);
+    filePath = format === "vtt" ? local?.vttPath ?? null : local?.srtPath ?? null;
+  }
   if (!filePath) {
     return NextResponse.json({ error: "Subtitles not available" }, { status: 404 });
   }
@@ -29,7 +30,7 @@ export async function GET(request: Request, { params }: { params: { clipId: stri
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": format === "vtt" ? "text/vtt" : "application/x-subrip",
-      "Content-Disposition": `attachment; filename=clip-${clip.id}.${format}`
+      "Content-Disposition": `attachment; filename=clip-${params.clipId}.${format}`
     }
   });
 }

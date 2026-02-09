@@ -61,17 +61,17 @@ export class FfmpegRenderer implements ClipRendererPort {
 }
 
 async function probeVideo(inputPath: string) {
-  const { spawn } = await import("child_process");
+  const { spawn } = await import("node:child_process");
   const args = ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", inputPath];
   return new Promise<{ width: number; height: number }>((resolve, reject) => {
     let output = "";
     const proc = spawn("ffprobe", args, { stdio: ["ignore", "pipe", "pipe"] });
     proc.stdout.on("data", (data) => (output += data.toString()));
     proc.stderr.on("data", (data) => (output += data.toString()));
-    proc.on("error", reject);
+    proc.on("error", (error) => reject(new Error(`ffprobe failed to start: ${error.message}`)));
     proc.on("close", (code) => {
       if (code !== 0) {
-        reject(new Error("ffprobe failed"));
+        reject(new Error(buildFfprobeError(output, code)));
         return;
       }
       try {
@@ -81,8 +81,10 @@ async function probeVideo(inputPath: string) {
           width: stream.width ?? 1920,
           height: stream.height ?? 1080
         });
-      } catch (error) {
-        reject(error);
+      } catch {
+        const summary = summarizeFfprobeOutput(output);
+        const suffix = summary ? ` ${summary}` : "";
+        reject(new Error(`ffprobe returned invalid JSON.${suffix}`));
       }
     });
   });
@@ -101,11 +103,11 @@ function buildSubtitleFilter(path: string) {
 }
 
 function escapeForFfmpeg(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/:/g, "\\:");
+  return value.replaceAll("\\", String.raw`\\`).replaceAll(":", String.raw`\:`);
 }
 
 async function runFfmpeg(args: string[]) {
-  const { spawn } = await import("child_process");
+  const { spawn } = await import("node:child_process");
   await new Promise<void>((resolve, reject) => {
     const proc = spawn("ffmpeg", args, { stdio: "inherit" });
     proc.on("error", reject);
@@ -117,4 +119,15 @@ async function runFfmpeg(args: string[]) {
       }
     });
   });
+}
+
+function buildFfprobeError(output: string, code: number | null) {
+  const summary = summarizeFfprobeOutput(output);
+  const exitCode = code ?? "unknown";
+  const suffix = summary ? ` ${summary}` : "";
+  return `ffprobe failed (exit ${exitCode}).${suffix}`;
+}
+
+function summarizeFfprobeOutput(output: string) {
+  return output.trim().replaceAll(/\s+/g, " ");
 }

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import path from "path";
-import { randomUUID } from "crypto";
-import { createWriteStream, promises as fs } from "fs";
-import { Readable } from "stream";
-import { pipeline } from "stream/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { createWriteStream, promises as fs } from "node:fs";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import Busboy from "busboy";
 import { rateLimit } from "../../../lib/rateLimit";
 
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 async function streamUpload(request: Request, uploadsDir: string, maxBytes: number) {
   const contentType = request.headers.get("content-type");
-  if (!contentType || !contentType.includes("multipart/form-data")) {
+  if (!contentType?.includes("multipart/form-data")) {
     throw new Error("Invalid content type");
   }
   if (!request.body) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { getDependencies } from "../../../../../src/infrastructure/container";
 import { rateLimit } from "../../../../../lib/rateLimit";
+import { findLocalClipFiles } from "../../../../../lib/localClips";
 
 export const runtime = "nodejs";
 
@@ -14,15 +15,20 @@ export async function GET(request: Request, { params }: { params: { clipId: stri
 
   const deps = getDependencies();
   const clip = await deps.repo.getClip(params.clipId);
-  if (!clip || !clip.videoPath) {
+  let videoPath = clip?.videoPath ?? null;
+  if (!videoPath && process.env.NODE_ENV === "development") {
+    const local = await findLocalClipFiles(params.clipId);
+    videoPath = local?.videoPath ?? null;
+  }
+  if (!videoPath) {
     return NextResponse.json({ error: "Clip not found" }, { status: 404 });
   }
 
-  const buffer = await fs.readFile(clip.videoPath);
+  const buffer = await fs.readFile(videoPath);
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "video/mp4",
-      "Content-Disposition": `attachment; filename=clip-${clip.id}.mp4`
+      "Content-Disposition": `attachment; filename=clip-${params.clipId}.mp4`
     }
   });
 }

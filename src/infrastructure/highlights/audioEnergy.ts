@@ -13,7 +13,7 @@ export async function analyzeAudioEnergy(inputPath: string): Promise<EnergySampl
 }
 
 async function probeDuration(inputPath: string) {
-  const { spawn } = await import("child_process");
+  const { spawn } = await import("node:child_process");
   const args = [
     "-v",
     "error",
@@ -28,20 +28,20 @@ async function probeDuration(inputPath: string) {
     const proc = spawn("ffprobe", args, { stdio: ["ignore", "pipe", "pipe"] });
     proc.stdout.on("data", (data) => (output += data.toString()));
     proc.stderr.on("data", (data) => (output += data.toString()));
-    proc.on("error", reject);
+    proc.on("error", (error) => reject(new Error(`ffprobe failed to start: ${error.message}`)));
     proc.on("close", (code) => {
       if (code === 0) {
         const value = Number.parseFloat(output.trim());
         resolve(Number.isFinite(value) ? value : 0);
       } else {
-        reject(new Error("ffprobe failed"));
+        reject(new Error(buildFfprobeError(output, code)));
       }
     });
   });
 }
 
 async function detectSilence(inputPath: string) {
-  const { spawn } = await import("child_process");
+  const { spawn } = await import("node:child_process");
   const args = [
     "-i",
     inputPath,
@@ -72,4 +72,11 @@ async function detectSilence(inputPath: string) {
     proc.on("error", reject);
     proc.on("close", () => resolve(silences));
   });
+}
+
+function buildFfprobeError(output: string, code: number | null) {
+  const summary = output.trim().replaceAll(/\s+/g, " ");
+  const exitCode = code ?? "unknown";
+  const suffix = summary ? ` ${summary}` : "";
+  return `ffprobe failed (exit ${exitCode}).${suffix}`;
 }
