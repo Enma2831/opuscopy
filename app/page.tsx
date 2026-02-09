@@ -46,7 +46,10 @@ export default function Home() {
       </header>
 
       <section className="grid gap-8 md:grid-cols-[1.2fr_0.8fr]">
-        <JobForm allowYoutubeDownloads={process.env.ALLOW_YOUTUBE_DOWNLOADS === "true"} />
+        <JobForm
+          allowYoutubeDownloads={process.env.ALLOW_YOUTUBE_DOWNLOADS === "true"}
+          allowYoutubeStreaming={process.env.ALLOW_YOUTUBE_STREAMING === "true"}
+        />
         <div className="space-y-6 rounded-[32px] border border-white/15 bg-white/5 p-6">
           <h2 className="text-2xl uppercase text-white">Uso responsable</h2>
           <p className="text-sm text-white/70">

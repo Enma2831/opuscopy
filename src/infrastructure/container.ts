@@ -4,7 +4,9 @@ import { RedisQueue } from "./queue/redisQueue";
 import { PrismaJobRepository } from "./repo/jobRepository";
 import { LocalLogger } from "./logger/localLogger";
 import { WhisperTranscriber } from "./transcription/whisperTranscriber";
+import { StreamingWhisperTranscriber } from "./transcription/streamingWhisperTranscriber";
 import { HybridHighlightDetector } from "./highlights/hybridHighlightDetector";
+import { TranscriptHighlightDetector } from "./highlights/transcriptHighlightDetector";
 import { FfmpegRenderer } from "./render/ffmpegRenderer";
 import { VideoSourceResolver } from "./video/videoSource";
 import { YtdlpClipper } from "./video/ytdlpClipper";
@@ -28,7 +30,9 @@ export function getDependencies(): JobDependencies {
     queue: new RedisQueue(redisUrl),
     source: new VideoSourceResolver(uploadsDir),
     transcriber: new WhisperTranscriber(path.join(storageBase, "jobs")),
+    streamingTranscriber: new StreamingWhisperTranscriber(path.join(storageBase, "jobs")),
     detector: new HybridHighlightDetector(),
+    streamingDetector: new TranscriptHighlightDetector(),
     renderer: new FfmpegRenderer(),
     youtubeClipper: new YtdlpClipper(),
     storage: new LocalStorage(storageBase),

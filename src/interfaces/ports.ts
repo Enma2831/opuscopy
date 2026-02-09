@@ -1,4 +1,4 @@
-import { ClipAsset, ClipRecord, HighlightSegment, JobOptions, JobRecord, Transcript, VideoSource } from "../domain/types";
+import { ClipRecord, HighlightSegment, JobOptions, JobRecord, Transcript, VideoSource } from "../domain/types";
 
 export interface VideoSourcePort {
   resolve(options: { url?: string | null; uploadId?: string | null }): Promise<VideoSource>;
@@ -8,9 +8,28 @@ export interface TranscriptionPort {
   transcribe(inputPath: string, language: string, jobId: string): Promise<Transcript>;
 }
 
+export interface StreamingTranscriptionPort {
+  transcribeStream(options: {
+    url: string;
+    language: string;
+    jobId: string;
+    start?: number;
+    end?: number;
+  }): Promise<Transcript>;
+}
+
 export interface HighlightDetectorPort {
   detect(options: {
     inputPath: string;
+    transcript?: Transcript | null;
+    clipCount: number;
+    durationPreset: JobOptions["durationPreset"];
+  }): Promise<HighlightSegment[]>;
+}
+
+export interface StreamingHighlightDetectorPort {
+  detectStream(options: {
+    url: string;
     transcript?: Transcript | null;
     clipCount: number;
     durationPreset: JobOptions["durationPreset"];

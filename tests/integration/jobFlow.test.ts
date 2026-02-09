@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
-import path from "path";
-import { promises as fs } from "fs";
+import path from "node:path";
+import { promises as fs } from "node:fs";
 import { createJob, processJob } from "../../src/application/jobService";
 import { LocalStorage } from "../../src/infrastructure/storage/localStorage";
 import { SubtitleService } from "../../src/infrastructure/transcription/subtitles";
 import { HighlightSegment, JobOptions, Transcript, VideoSource, JobRecord, ClipRecord } from "../../src/domain/types";
-import { ClipRendererPort, HighlightDetectorPort, JobQueuePort, JobRepositoryPort, LoggerPort, TranscriptionPort, VideoSourcePort, YoutubeClipperPort } from "../../src/interfaces/ports";
+import {
+  ClipRendererPort,
+  HighlightDetectorPort,
+  JobQueuePort,
+  JobRepositoryPort,
+  LoggerPort,
+  StreamingHighlightDetectorPort,
+  StreamingTranscriptionPort,
+  TranscriptionPort,
+  VideoSourcePort,
+  YoutubeClipperPort
+} from "../../src/interfaces/ports";
 
 class MemoryRepo implements JobRepositoryPort {
   jobs = new Map<string, JobRecord>();
@@ -76,12 +87,19 @@ class MemoryRepo implements JobRepositoryPort {
 }
 
 class MockQueue implements JobQueuePort {
-  async enqueueJob(_: string) {}
-  async enqueueClipRerender(_: { jobId: string; clipId: string; start: number; end: number; burnSubtitles: boolean; smartCrop: boolean }) {}
+  enqueueCount = 0;
+  rerenderCount = 0;
+
+  async enqueueJob(_: string) {
+    this.enqueueCount += 1;
+  }
+  async enqueueClipRerender(_: { jobId: string; clipId: string; start: number; end: number; burnSubtitles: boolean; smartCrop: boolean }) {
+    this.rerenderCount += 1;
+  }
 }
 
 class MockSource implements VideoSourcePort {
-  constructor(private inputPath: string) {}
+  constructor(private readonly inputPath: string) {}
   async resolve(_: { url?: string | null; uploadId?: string | null }): Promise<VideoSource> {
     return { type: "upload", filePath: this.inputPath };
   }
@@ -99,6 +117,18 @@ class MockTranscriber implements TranscriptionPort {
   }
 }
 
+class MockStreamingTranscriber implements StreamingTranscriptionPort {
+  async transcribeStream(): Promise<Transcript> {
+    return {
+      language: "es",
+      segments: [
+        { start: 0, end: 4, text: "streaming intro" },
+        { start: 4, end: 10, text: "streaming moment" }
+      ]
+    };
+  }
+}
+
 class MockDetector implements HighlightDetectorPort {
   async detect(_: {
     inputPath: string;
@@ -107,6 +137,12 @@ class MockDetector implements HighlightDetectorPort {
     durationPreset: JobOptions["durationPreset"];
   }): Promise<HighlightSegment[]> {
     return [{ start: 0, end: 12, score: 0.8, reason: "audio peak" }];
+  }
+}
+
+class MockStreamingDetector implements StreamingHighlightDetectorPort {
+  async detectStream(): Promise<HighlightSegment[]> {
+    return [{ start: 0, end: 10, score: 0.9, reason: "streaming peak" }];
   }
 }
 
@@ -141,9 +177,17 @@ class MockYoutubeClipper implements YoutubeClipperPort {
 }
 
 class MockLogger implements LoggerPort {
-  async info(_: string, __: string) {}
-  async warn(_: string, __: string) {}
-  async error(_: string, __: string) {}
+  entries: Array<{ level: "info" | "warn" | "error"; jobId: string; message: string }> = [];
+
+  async info(jobId: string, message: string) {
+    this.entries.push({ level: "info", jobId, message });
+  }
+  async warn(jobId: string, message: string) {
+    this.entries.push({ level: "warn", jobId, message });
+  }
+  async error(jobId: string, message: string) {
+    this.entries.push({ level: "error", jobId, message });
+  }
 }
 
 describe("job flow", () => {
@@ -154,7 +198,9 @@ describe("job flow", () => {
       queue: new MockQueue(),
       source: new MockSource(path.join(process.cwd(), "samples", "sample.wav")),
       transcriber: new MockTranscriber(),
+      streamingTranscriber: new MockStreamingTranscriber(),
       detector: new MockDetector(),
+      streamingDetector: new MockStreamingDetector(),
       renderer: new MockRenderer(),
       youtubeClipper: new MockYoutubeClipper(),
       storage,
@@ -203,7 +249,9 @@ describe("youtube flow", () => {
         }
       } as unknown) as VideoSourcePort,
       transcriber: new MockTranscriber(),
+      streamingTranscriber: new MockStreamingTranscriber(),
       detector: new MockDetector(),
+      streamingDetector: new MockStreamingDetector(),
       renderer: new MockRenderer(),
       youtubeClipper: new MockYoutubeClipper(),
       storage,
@@ -234,6 +282,9 @@ describe("youtube flow", () => {
   });
 
   it("errors when YouTube downloads disabled and no file available", async () => {
+    const previousStreaming = process.env.ALLOW_YOUTUBE_STREAMING;
+    process.env.ALLOW_YOUTUBE_STREAMING = "false";
+
     const storage = new LocalStorage(path.join(process.cwd(), "storage", "test-youtube-disabled"));
     const deps = {
       repo: new MemoryRepo(),
@@ -250,7 +301,9 @@ describe("youtube flow", () => {
         }
       } as unknown) as VideoSourcePort,
       transcriber: new MockTranscriber(),
+      streamingTranscriber: new MockStreamingTranscriber(),
       detector: new MockDetector(),
+      streamingDetector: new MockStreamingDetector(),
       renderer: new MockRenderer(),
       youtubeClipper: new MockYoutubeClipper(),
       storage,
@@ -266,11 +319,69 @@ describe("youtube flow", () => {
       smartCrop: true
     };
 
-const job = await createJob({ sourceType: "youtube", sourceUrl: "https://youtu.be/dummy", options }, deps);
+    const job = await createJob({ sourceType: "youtube", sourceUrl: "https://youtu.be/dummy", options }, deps);
     await processJob(job.id, deps);
 
     const updated = await deps.repo.getJob(job.id);
     expect(updated?.status).toBe("error");
     expect(updated?.error).toBe("YouTube downloads are disabled. Upload a file you own or have rights to use.");
+
+    process.env.ALLOW_YOUTUBE_STREAMING = previousStreaming;
+  });
+
+  it("streams YouTube when downloads disabled and streaming enabled", async () => {
+    const previousStreaming = process.env.ALLOW_YOUTUBE_STREAMING;
+    process.env.ALLOW_YOUTUBE_STREAMING = "true";
+
+    try {
+      const storage = new LocalStorage(path.join(process.cwd(), "storage", "test-youtube-streaming"));
+      const deps = {
+        repo: new MemoryRepo(),
+        queue: new MockQueue(),
+        source: ({
+          async resolve(_: { url?: string | null; uploadId?: string | null }): Promise<VideoSource> {
+            return {
+              type: "youtube",
+              filePath: undefined,
+              url: "https://youtu.be/dummy",
+              title: "Dummy",
+              provider: "YouTube"
+            };
+          }
+        } as unknown) as VideoSourcePort,
+        transcriber: new MockTranscriber(),
+        streamingTranscriber: new MockStreamingTranscriber(),
+        detector: new MockDetector(),
+        streamingDetector: new MockStreamingDetector(),
+        renderer: new MockRenderer(),
+        youtubeClipper: new MockYoutubeClipper(),
+        storage,
+        subtitles: new SubtitleService(),
+        logger: new MockLogger()
+      };
+
+      const options: JobOptions = {
+        language: "es",
+        clipCount: 1,
+        durationPreset: "short",
+        subtitles: "srt",
+        smartCrop: true
+      };
+
+      const job = await createJob({ sourceType: "youtube", sourceUrl: "https://youtu.be/dummy", options }, deps);
+      await processJob(job.id, deps);
+
+      const updated = await deps.repo.getJob(job.id);
+      const clips = await deps.repo.listClips(job.id);
+
+      expect(updated?.status).toBe("ready");
+      expect(clips.length).toBeGreaterThan(0);
+      const clip = clips[0];
+      expect(clip.videoPath).toBeTruthy();
+      const videoPath = clip.videoPath!;
+      expect(await storage.exists(videoPath)).toBe(true);
+    } finally {
+      process.env.ALLOW_YOUTUBE_STREAMING = previousStreaming;
+    }
   });
 });

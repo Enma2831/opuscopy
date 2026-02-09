@@ -95,7 +95,11 @@ npm run worker
 | WHISPER_CMD | Comando Whisper CLI | whisper |
 | WHISPER_MODEL | Modelo Whisper | base |
 | WHISPER_DEVICE | cpu o cuda | cpu |
-| ALLOW_YOUTUBE_DOWNLOADS | Placeholder (no habilita descargas) | true |
+| ALLOW_YOUTUBE_DOWNLOADS | Permite descargar videos completos desde YouTube | false |
+| ALLOW_YOUTUBE_STREAMING | Permite streaming con yt-dlp sin descargar el video completo | false |
+| YT_MAX_HEIGHT | Altura maxima para clips streaming | 720 |
+| YT_CLIP_TIMEOUT_MS | Timeout para clipping/streaming en ms | 300000 |
+| YT_DOWNLOAD_TIMEOUT_MS | Timeout para descargas completas en ms | 600000 |
 | FFMPEG_LOUDNORM | 1 para loudnorm | 1 |
 | MAX_UPLOAD_MB | Limite de upload en MB | 500 |
 | WORKER_COUNT | Procesos worker para balanceo | 1 |
