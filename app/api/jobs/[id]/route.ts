@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getDependencies } from "../../../../src/infrastructure/container";
-import { rateLimit } from "../../../../lib/rateLimit";
+import { bucketOptions, rateLimitRequest, withRateLimitHeaders } from "../../../../lib/rateLimit";
 import { findLocalJob } from "../../../../lib/localClips";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  const rate = rateLimit(ip);
+  const rate = await rateLimitRequest(request, bucketOptions("jobs-read", { max: 60 }));
+  const rateInit = withRateLimitHeaders(undefined, rate, { retryAfter: !rate.ok });
   if (!rate.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { ...rateInit, status: 429 });
   }
 
   const deps = getDependencies();
@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         return NextResponse.json(local);
       }
     }
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    return NextResponse.json({ error: "Job not found" }, { ...rateInit, status: 404 });
   }
   const clips = await deps.repo.listClips(params.id);
   let safeClips = clips.map((clip) => ({
@@ -40,5 +40,5 @@ export async function GET(request: Request, { params }: { params: { id: string }
       safeClips = local.clips;
     }
   }
-  return NextResponse.json({ job, clips: safeClips });
+  return NextResponse.json({ job, clips: safeClips }, rateInit);
 }

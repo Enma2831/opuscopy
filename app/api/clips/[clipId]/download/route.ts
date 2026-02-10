@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { getDependencies } from "../../../../../src/infrastructure/container";
-import { rateLimit } from "../../../../../lib/rateLimit";
+import { bucketOptions, rateLimitRequest, withRateLimitHeaders } from "../../../../../lib/rateLimit";
 import { findLocalClipFiles } from "../../../../../lib/localClips";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: { clipId: string } }) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  const rate = rateLimit(ip);
+  const rate = await rateLimitRequest(request, bucketOptions("clips-download", { max: 60 }));
+  const rateInit = withRateLimitHeaders(undefined, rate, { retryAfter: !rate.ok });
   if (!rate.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { ...rateInit, status: 429 });
   }
 
   const deps = getDependencies();
@@ -21,14 +21,18 @@ export async function GET(request: Request, { params }: { params: { clipId: stri
     videoPath = local?.videoPath ?? null;
   }
   if (!videoPath) {
-    return NextResponse.json({ error: "Clip not found" }, { status: 404 });
+    return NextResponse.json({ error: "Clip not found" }, { ...rateInit, status: 404 });
   }
 
   const buffer = await fs.readFile(videoPath);
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type": "video/mp4",
-      "Content-Disposition": `attachment; filename=clip-${params.clipId}.mp4`
-    }
-  });
+  const responseInit = withRateLimitHeaders(
+    {
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Disposition": `attachment; filename=clip-${params.clipId}.mp4`
+      }
+    },
+    rate
+  );
+  return new NextResponse(buffer, responseInit);
 }

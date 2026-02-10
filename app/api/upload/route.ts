@@ -5,7 +5,7 @@ import { createWriteStream, promises as fs } from "node:fs";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import Busboy from "busboy";
-import { rateLimit } from "../../../lib/rateLimit";
+import { bucketOptions, rateLimitRequest, withRateLimitHeaders } from "../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -90,10 +90,10 @@ async function streamUpload(request: Request, uploadsDir: string, maxBytes: numb
 }
 
 export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  const rate = rateLimit(ip);
+  const rate = await rateLimitRequest(request, bucketOptions("upload", { max: 10 }));
+  const rateInit = withRateLimitHeaders(undefined, rate, { retryAfter: !rate.ok });
   if (!rate.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { ...rateInit, status: 429 });
   }
 
   const maxBytes = Number.parseInt(process.env.MAX_UPLOAD_MB ?? "500", 10) * 1024 * 1024;
@@ -102,15 +102,15 @@ export async function POST(request: Request) {
 
   try {
     const { uploadId } = await streamUpload(request, uploadsDir, maxBytes);
-    return NextResponse.json({ uploadId });
+    return NextResponse.json({ uploadId }, rateInit);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
     if (message === "File too large" || (error as { code?: string }).code === "LIMIT_FILE_SIZE") {
-      return NextResponse.json({ error: "File too large" }, { status: 413 });
+      return NextResponse.json({ error: "File too large" }, { ...rateInit, status: 413 });
     }
     if (message === "Missing file" || message === "Invalid content type" || message === "Only one file allowed") {
-      return NextResponse.json({ error: message }, { status: 400 });
+      return NextResponse.json({ error: message }, { ...rateInit, status: 400 });
     }
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "Upload failed" }, { ...rateInit, status: 500 });
   }
 }

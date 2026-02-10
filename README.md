@@ -1,4 +1,5 @@
 # ClipForge
+[![CI](https://github.com/Enma2831/opuscopy/actions/workflows/ci.yml/badge.svg)](https://github.com/Enma2831/opuscopy/actions/workflows/ci.yml)
 
 <p align="center">
   <img src="docs/clipforge-hero.svg" alt="ClipForge hero banner" width="100%" />
@@ -105,6 +106,36 @@ npm run worker
 | WORKER_COUNT | Procesos worker para balanceo | 1 |
 | WORKER_CONCURRENCY | Jobs concurrentes por proceso | 1 |
 | WORKER_MAX_RSS_MB | Pausa nuevos jobs si supera RSS (0 desactiva) | 0 |
+| RATE_LIMIT_MAX | Max requests por ventana (default global) | 30 |
+| RATE_LIMIT_WINDOW_MS | Ventana global en ms | 60000 |
+| RATE_LIMIT_PREFIX | Prefijo Redis para rate limit | clipforge:rate |
+
+## Rate limiting
+Se aplica por IP a todos los endpoints. Si Redis no esta disponible, hace fallback en memoria (por instancia).
+
+Headers en respuesta:
+- `X-RateLimit-Limit`
+- `X-RateLimit-Remaining`
+- `X-RateLimit-Reset` (epoch seconds)
+- `Retry-After` (solo cuando responde 429)
+
+Buckets y limites por defecto (por ventana):
+- `jobs-create`: 20
+- `jobs-read`: 60
+- `jobs-rerender`: 20
+- `jobs-logs`: 30
+- `clips-create`: 20
+- `clips-download`: 60
+- `clips-subtitles`: 60
+- `upload`: 10
+- `health`: 120
+- `metrics`: 120
+
+Overrides por bucket:
+- `RATE_LIMIT_<BUCKET>_MAX`
+- `RATE_LIMIT_<BUCKET>_WINDOW_MS`
+
+Ejemplo: para `jobs-create` usar `RATE_LIMIT_JOBS_CREATE_MAX` y `RATE_LIMIT_JOBS_CREATE_WINDOW_MS`.
 
 ## Tests
 ```

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDependencies } from "../../../../../src/infrastructure/container";
-import { rateLimit } from "../../../../../lib/rateLimit";
+import { bucketOptions, rateLimitRequest, withRateLimitHeaders } from "../../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -18,25 +18,25 @@ const schema = z.object({
 });
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  const rate = rateLimit(ip);
+  const rate = await rateLimitRequest(request, bucketOptions("jobs-rerender", { max: 20 }));
+  const rateInit = withRateLimitHeaders(undefined, rate, { retryAfter: !rate.ok });
   if (!rate.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { ...rateInit, status: 429 });
   }
 
   const payload = await request.json().catch(() => null);
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { ...rateInit, status: 400 });
   }
   if (parsed.data.end <= parsed.data.start) {
-    return NextResponse.json({ error: "End must be greater than start" }, { status: 400 });
+    return NextResponse.json({ error: "End must be greater than start" }, { ...rateInit, status: 400 });
   }
 
   const deps = getDependencies();
   const job = await deps.repo.getJob(params.id);
   if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    return NextResponse.json({ error: "Job not found" }, { ...rateInit, status: 404 });
   }
 
   const burnSubtitles = parsed.data.options?.subtitles
@@ -53,5 +53,5 @@ export async function POST(request: Request, { params }: { params: { id: string 
     smartCrop
   });
 
-  return NextResponse.json({ status: "queued" });
+  return NextResponse.json({ status: "queued" }, rateInit);
 }

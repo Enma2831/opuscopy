@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createJob } from "../../../src/application/jobService";
 import { getDependencies } from "../../../src/infrastructure/container";
-import { rateLimit } from "../../../lib/rateLimit";
+import { bucketOptions, rateLimitRequest, withRateLimitHeaders } from "../../../lib/rateLimit";
 import { isYoutubeUrl } from "../../../lib/validateUrl";
 import { JobOptions } from "../../../src/domain/types";
 
@@ -33,16 +33,16 @@ const defaultOptions: JobOptions = {
 };
 
 export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-  const rate = rateLimit(ip);
+  const rate = await rateLimitRequest(request, bucketOptions("jobs-create", { max: 20 }));
+  const rateInit = withRateLimitHeaders(undefined, rate, { retryAfter: !rate.ok });
   if (!rate.ok) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: "Rate limit exceeded" }, { ...rateInit, status: 429 });
   }
 
   const payload = await request.json().catch(() => null);
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { ...rateInit, status: 400 });
   }
 
   const { sourceType: inputSourceType, sourceUrl, url, uploadId, options } = parsed.data;
@@ -50,11 +50,11 @@ export async function POST(request: Request) {
   let sourceType = inputSourceType ?? (uploadId ? "upload" : finalUrl ? "youtube" : null);
 
   if (!sourceType || (!finalUrl && !uploadId)) {
-    return NextResponse.json({ error: "Provide a YouTube URL or upload a file." }, { status: 400 });
+    return NextResponse.json({ error: "Provide a YouTube URL or upload a file." }, { ...rateInit, status: 400 });
   }
 
   if (sourceType === "youtube" && finalUrl && !isYoutubeUrl(finalUrl)) {
-    return NextResponse.json({ error: "Only youtube.com or youtu.be links are allowed." }, { status: 400 });
+    return NextResponse.json({ error: "Only youtube.com or youtu.be links are allowed." }, { ...rateInit, status: 400 });
   }
 
   const youtubeAllowed =
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   if (sourceType === "youtube" && !uploadId && !youtubeAllowed) {
     return NextResponse.json(
       { error: "YouTube downloads are disabled. Upload a file you own or have rights to use." },
-      { status: 400 }
+      { ...rateInit, status: 400 }
     );
   }
 
@@ -78,5 +78,5 @@ export async function POST(request: Request) {
     deps
   );
 
-  return NextResponse.json({ jobId: job.id });
+  return NextResponse.json({ jobId: job.id }, rateInit);
 }
